@@ -5,11 +5,11 @@ name: YOLOv5 CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ ultralytics/HUB ]
   pull_request:
-    branches: [ master ]
-  schedule:
-    - cron: '0 0 * * *'  # runs at 00:00 UTC every day
+    branches: [ ultralytics/HUB ]
+  # schedule:
+  #   - cron: '0 0 * * *'  # runs at 00:00 UTC every day
 
 jobs:
   Benchmarks:
@@ -138,3 +138,14 @@ jobs:
           for path in '$m', '$b':
               model = torch.hub.load('.', 'custom', path=path, source='local')
           EOF
+      - name: Test HUB training
+        shell: python
+        env:
+          APIKEY: ${{ secrets.ULTRALYTICS_HUB_APIKEY }}
+        run: |        
+          import os
+          import ultralytics
+          ultralytics.checks()
+          key = os.environ['APIKEY']
+          ultralytics.reset_model(key)  # reset trained model
+          ultralytics.start(key)  # train model

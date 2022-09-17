@@ -33,6 +33,9 @@ def autobatch(model, imgsz=640, fraction=0.8, batch_size=16):
     if device.type == 'cpu':
         LOGGER.info(f'{prefix}CUDA not detected, using default CPU batch-size {batch_size}')
         return batch_size
+    if torch.backends.cudnn.benchmark:
+        LOGGER.info(f'{prefix} ⚠️ Requires torch.backends.cudnn.benchmark=False, using default batch-size {batch_size}')
+        return batch_size
 
     # Inspect CUDA memory
     gb = 1 << 30  # bytes to GiB (1024 ** 3)
@@ -60,8 +63,8 @@ def autobatch(model, imgsz=640, fraction=0.8, batch_size=16):
         i = results.index(None)  # first fail index
         if b >= batch_sizes[i]:  # y intercept above failure point
             b = batch_sizes[max(i - 1, 0)]  # select prior safe point
-    if b < 1:  # zero or negative batch size
-        b = 16
+    if b < 1 or b > 1024:  # b outside of safe range
+        b = batch_size
         LOGGER.warning(f'{prefix}WARNING: ⚠️ CUDA anomaly detected, recommend restart environment and retry command.')
 
     fraction = np.polyval(p, b) / t  # actual fraction predicted
